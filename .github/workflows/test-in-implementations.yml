@@ -1,0 +1,93 @@
+name: test-in-implementations
+
+on: [push]
+
+env:
+  # Should use 2.0.3 but that needs a too-new glibc
+  SBCL_DOWNLOAD_URL: https://prdownloads.sourceforge.net/sbcl/sbcl-1.5.0-x86-64-linux-binary.tar.bz2
+  ECL_DOWNLOAD_URL:
+
+  CL_LAUNCH_DOWNLOAD_URL: https://common-lisp.net/project/xcvb/cl-launch/cl-launch.sh
+  QUICKLISP_DOWNLOAD_URL: https://beta.quicklisp.org/quicklisp.lisp
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        implementation: [ sbcl, ecl ] # TODO ccl
+
+    steps:
+      - uses: actions/checkout@v1
+
+      # Install SBCL (with cache)
+      - uses: actions/cache@v1
+        id: sbcl-cache
+        if: matrix.implementation == 'sbcl'
+        with:
+          path: /tmp/sbcl
+          key: sbcl-cache
+
+      - name: install implementation SBCL
+        if: (matrix.implementation == 'sbcl')
+            && (steps.sbcl-cache.outputs.cache-hit != 'true')
+        run: |
+          curl -L "${SBCL_DOWNLOAD_URL}" | tar -xj
+          ( cd sbcl-* && INSTALL_ROOT="/tmp/sbcl" sh install.sh )
+        working-directory: /tmp/
+
+      # Install ECL (with cache)
+      - uses: actions/cache@v1
+        id: ecl-cache
+        if: matrix.implementation == 'ecl'
+        with:
+          path: /tmp/ecl
+          key: ecl-cache
+
+      - name: build implementation ECL
+        if: (matrix.implementation == 'ecl')
+            && (steps.ecl-cache.outputs.cache-hit != 'true')
+        run: |
+          wget -q https://github.com/sbcl/sbcl/releases/download/sbcl-1.4.14/ecl.tgz
+          tar -xzf ecl.tgz
+          mv ecl ecl-src
+          cd ecl-src
+          ./configure --prefix=/tmp/ecl/
+          make
+
+          make install
+          echo '(setf *debugger-hook* (lambda (c fun) (princ c) (si::tpl-backtrace) (quit 1)))' > ~/.eclrc
+        working-directory: /tmp
+
+      # Install CCL (with cache)
+      # - name: install implementation CCL
+      #  if: ${{ matrix.implementation }} == 'ccl'
+      #  run: |
+
+      # Install cl-launch and Quicklisp
+      - name: install cl-launch
+        run: |
+          curl -l -o cl "${CL_LAUNCH_DOWNLOAD_URL}"
+          chmod +x cl
+
+          echo "SBCL=/tmp/sbcl/bin/sbcl" >> ~/.cl-launchrc
+          echo "ECL=/tmp/ecl/bin/ecl" >> ~/.cl-launchrc
+          ./cl -v
+
+      - name: install quicklisp
+        run: |
+          curl -o quicklisp.lisp "${QUICKLISP_DOWNLOAD_URL}"
+          ./cl -l "${{ matrix.implementation }}" -L quicklisp.lisp '(quicklisp-quickstart:install)'
+
+      # Run tests
+      - name: test
+        run: |
+          ./cl
+            -l ${{ matrix.implementation }}
+            -S '(:source-registry (:directory "'$(pwd)'") :ignore-inherited-configuration)'
+            -Q
+            -s eclector/test -s eclector-concrete-syntax-tree/test
+            '(or (and (eclector.test:run-tests)
+                      (eclector.concrete-syntax-tree.test:run-tests))
+                 (uiop:quit -1))'
