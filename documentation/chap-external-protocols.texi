@@ -529,7 +529,7 @@ For compound feature expressions, the well-formedness of child
 expressions is not checked immediately but lazily, just before the child
 expression in question is evaluated in a subsequent
 @t{evaluate-feature-expression} call.  This allows expressions like
-@code{#+(and my-cl-implementation (special-feature a b)) @var{form}} to
+@code{#-(and my-cl-implementation (special-feature a b)) @var{form}} to
 be read without error when the @t{:my-cl-implementation} feature is
 absent.
 
