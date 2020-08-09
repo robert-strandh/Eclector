@@ -11,6 +11,9 @@
     (#\→ (write-string "&rArr;" stream))
     (t   (write-char character stream))))
 
+(defun str (stream string)
+  (map nil (a:curry #'ch stream) string))
+
 (defun <span (stream &rest classes)
   (format stream "<span class=\"~{syntax-~A~^ ~}\">" classes))
 
@@ -202,25 +205,22 @@
 
 (defmethod leave-node :before ((client html-client) (node interned-symbol-node))
   (when (intern? node)
-    (format (stream client) "<span>~A</span>" "Do not use uninterned symbols")))
+    (let ((stream (stream client)))
+      (<span stream "message")
+      (write-string "Do not use unexported symbols." stream)
+      (/span stream))))
 
 (defmethod style-class ((client html-client) (node interned-symbol-node)) ; TODO return list and use APPEND method combination?
   (if (intern? node)
       (list* "two-package-markers" (a:ensure-list (call-next-method)))
       (call-next-method)))
 
-(defmethod style-class ((client html-client) (node symbol-node)) ; TODO return list and use APPEND method combination?
-  (call-next-method)
-  #+no (let ((symbol (value node)))
-         (cond ((keywordp symbol)
-                "keyword")
-               ((null (symbol-package symbol))
-                "uninterned")
-               (t
-                "symbol"))))
+(defun name-of-package? (string package)
+  (or (string= string (package-name package))
+      (member string (package-nicknames package) :test #'string=)))
 
 (defmethod url ((client link-mixin) (node interned-symbol-node))
-  (when (string= (package node) "CL")
+  (when (name-of-package? (package node) "CL")
     (format nil "http://l1sp.org/cl/~(~A~)" (name node))))
 
 ;;; Sequence

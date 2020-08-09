@@ -6,37 +6,35 @@
    Modified significantly since.
 */
 
-.error {
-    text-decoration: underline red;
-}
-.error > span.message {
+span.syntax-message {
     visibility: hidden;
 
     background-color: beige;
-    color: red;
     padding: 12px 12px;
     border-radius: 20px;
 
     position: absolute;
     z-index: 1;
 }
-.error:hover > span.message {
+
+.syntax-error {
+    text-decoration: underline red;
+}
+.syntax-error > span.syntax-message {
+    color: red;
+}
+.syntax-error:hover > span.syntax-message {
     visibility: visible;
 }
 
 .syntax-bad-whitespace {
-    background: orange;
+    text-decoration: underline orange;
+    -webkit-text-decoration-style: wavy;
+    -moz-text-decoration-style: wavy;
+    text-decoration-style: wavy;
 }
-.syntax-bad-whitespace > span.message {
-    visibility: hidden;
-
-    background-color: beige;
+.syntax-bad-whitespace > span.syntax-message {
     color: orange;
-    padding: 12px 12px;
-    border-radius: 20px;
-
-    position: absolute;
-    z-index: 1;
 }
 .syntax-bad-whitespace:hover > span {
     visibility: visible;
@@ -64,6 +62,10 @@
 
 .syntax-keyword-symbol {
     color: #921;
+}
+
+.syntax-lambda-list-keyword-symbol {
+    color: #991;
 }
 
 .syntax-interned-symbol {

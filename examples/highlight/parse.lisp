@@ -1,13 +1,23 @@
 (cl:in-package #:eclector.examples.highlight)
 
 (defclass highlight-client (eclector.parse-result:parse-result-client)
-  ((%input  :initarg  :input
-            :reader   input)
-   (%errors :initarg  :errors
-            :accessor errors
-            :initform '())))
+  ((%input           :initarg  :input
+                     :reader   input)
+   (%current-package :initarg  :current-package
+                     :accessor current-package)
+   (%errors          :initarg  :errors
+                     :accessor errors
+                     :initform '())))
 
 ;;; Nodes instead of objects
+(defmethod eclector.reader:call-with-current-package ((client             highlight-client)
+                                                      (thunk              t)
+                                                      (package-designator t))
+  (let ((old-package (current-package client)))
+    (setf (current-package client) (string package-designator))
+    (unwind-protect
+         (funcall thunk)
+      (setf (current-package client) old-package))))
 
 (defmethod eclector.reader:interpret-symbol ((client highlight-client)
                                              (input-stream      t)
@@ -28,16 +38,29 @@
                                              (package-indicator t)
                                              (symbol-name       t)
                                              (internp           t))
-  (multiple-value-bind (package intern?)
-      (cond ((not (eq package-indicator :current))
-             (values package-indicator internp))
-            ((find-symbol symbol-name (find-package '#:CL))
-             (values "CL" nil))
-            (t
-             (values "foo" nil)))
-    (make-instance 'interned-symbol-node :package package
-                                         :name    symbol-name
-                                         :intern? intern?)))
+  (let* ((current-package-name (current-package client))
+         (current-package      (find-package current-package-name)))
+    (multiple-value-bind (class package intern?)
+        (cond ((not (eq package-indicator :current))
+               (values 'interned-symbol-node package-indicator internp))
+              ((and current-package (eq current-package (find-package '#:keyword)))
+               'keyword-symbol-node)
+              ((and current-package
+                    (eq :external (nth-value 1 (find-symbol symbol-name current-package))))
+               (values 'interned-symbol-node current-package-name nil))
+              ((eq :external (nth-value 1 (find-symbol symbol-name (find-package '#:CL))))
+               (let ((class (if (find symbol-name lambda-list-keywords
+                                      :test #'string=)
+                                'lambda-list-keyword-symbol-node
+                                'interned-symbol-node)))
+                (values class "CL" nil)))
+              (t
+               (warn "No idea what's going on with ~S in ~S"
+                     symbol-name current-package-name)
+               (values 'interned-symbol-node current-package-name nil)))
+      (apply #'make-instance class :name symbol-name
+             (when package
+               (list :package package :intern? intern?))))))
 
 (defmethod eclector.reader:wrap-in-quote ((client   highlight-client)
                                           (material t))
@@ -95,8 +118,8 @@
 
 ;;;
 
-(defun read-stuff (input)
-  (let ((client (make-instance 'highlight-client :input input))
+(defun read-stuff (input &key package)
+  (let ((client (make-instance 'highlight-client :input input :current-package package))
         (stream (make-string-input-stream input)))
     (eclector.reader:call-as-top-level-read
      client
@@ -119,8 +142,9 @@
                                        (errors client))))))
      stream nil :eof t)))
 
-(defun highlight (input-string &key (client (make-instance 'minimal-html-client :stream *standard-output*)))
-  (multiple-value-bind (cst errors) (read-stuff input-string)
+(defun highlight (input-string &key (package "COMMON-LISP-USER")
+                                    (client (make-instance 'minimal-html-client :stream *standard-output*)))
+  (multiple-value-bind (cst errors) (read-stuff input-string :package package)
     (let ((node cst)
           (stack (list cst)))
       (flet ((maybe-end-errors (position)
@@ -163,10 +187,12 @@
                                     (leave-node client node))
                               stack)))))))
 
-(defun highlight-string (string &key client)
+(defun highlight-string (string &key package client)
   (with-output-to-string (stream)
-    (apply #'highlight string stream (when client
-                                       (list :client client)))))
+    (apply #'highlight string stream (append (when package
+                                               (list :package package))
+                                             (when client
+                                               (list :client client))))))
 
 (defun process (input output &key (client (make-instance 'linking-html-client :input input :stream *standard-output*)))
   (a:with-output-to-file (stream output :if-exists :supersede)
