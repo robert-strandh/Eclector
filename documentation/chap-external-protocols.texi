@@ -71,8 +71,8 @@ refer to symbols in this package.
 @cindex parse result
 @cindex source tracking
 
-In this section, symbols written without package marker are in the
-@t{eclector.reader} package
+In this section, symbols written without package marker
+are in the @t{eclector.reader} package
 (@pxref{Package for ordinary reader features})
 
 The features provided in this package fall into two categories:
@@ -694,8 +694,9 @@ This function sets the standard syntax types and macro characters in
 
 @cindex readtable
 
-In this section, symbols written without package marker are in the
-@t{eclector.readtable} package (@pxref{Package for readtable features}).
+In this section, symbols written without package marker
+are in the @t{eclector.readtable} package
+(@pxref{Package for readtable features}).
 
 This package exports two kinds of symbols:
 
@@ -728,9 +729,9 @@ TODO
 @cindex client
 @cindex parse result
 
-In this section, symbols written without package marker are in the
-@t{eclector.parse-result} package (@pxref{Package for parse
-result construction features}).
+In this section, symbols written without package marker
+are in the @t{eclector.parse-result} package
+(@pxref{Package for parse result construction features}).
 
 This package provides clients with a reader that behaves similarly to
 @t{cl:read} but returns custom parse result objects controlled by
@@ -909,9 +910,9 @@ not represented as a parse result.
 @cindex parse result
 @cindex concrete syntax tree
 
-In this section, symbols written without package marker are in the
-@t{eclector.concrete-syntax-tree} package (@pxref{Package for CST
-features}).
+In this section, symbols written without package marker
+are in the @t{eclector.concrete-syntax-tree} package
+(@pxref{Package for CST features}).
 
 @deffuna {read,eclector.concrete-syntax-tree} @optional@
   (input-stream @t{*standard-input*})@

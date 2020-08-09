@@ -137,9 +137,9 @@ of the structure.  The following example illustrates this problem:
   (defvar *counter* 0)
   (defstruct foo (bar (incf *counter*)))
   #S(foo)
-  *counter* ; => 1
+  *counter* @result{} 1
   #S(foo)
-  *counter* ; => 2
+  *counter* @result{} 2
 @end lisp
 
 @node Circular structure

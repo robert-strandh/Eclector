@@ -23,3 +23,10 @@ in objects that can also contain information about the positions in
 the source code of those expressions.  One example of such parse
 results are @emph{concrete syntax trees}
 @footnote{See: @url{https://github.com/s-expressionists/Concrete-Syntax-Tree}}.
+
+In the simplest case, @sysname{} can be used as a replacement for the
+@t{cl:read} functions:
+
+@lisp
+(eclector.reader:read-from-string ":foo") @result{} :FOO 4
+@end lisp
