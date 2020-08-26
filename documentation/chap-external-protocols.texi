@@ -894,8 +894,8 @@ aforementioned reasons are reflected by the value of the
 @item Comment starting with @t{;;}         @tab @t{(:line-comment . 2)}
 @item Comment starting with @math{n} @t{;} @tab @t{(:line-comment . @math{n})}
 @item Comment delimited by @t{#|} @t{|#}   @tab @t{:block-comment}
-@item @t{#+@emph{false-expression}}        @tab @t{(:sharpsign-plus . @emph{false-expression})}
-@item @t{#-@emph{true-expression}}         @tab @t{(:sharpsign-minus . @emph{true-expression})}
+@item @t{#+@emph{false-expression} 1 2}    @tab @t{(:sharpsign-plus . @emph{false-expression})}
+@item @t{#-@emph{true-expression} 1 2}     @tab @t{(:sharpsign-minus . @emph{true-expression})}
 @item @t{*read-suppress*} is true          @tab @t{*read-suppress*}
 @item A reader macro returns no values     @tab @t{:reader-macro}
 @end multitable
