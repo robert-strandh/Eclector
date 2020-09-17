@@ -16,7 +16,7 @@ $(NAME).pdf: $(SOURCES) $(FIGURES)
 
 $(NAME).html: $(SOURCES) $(FIGURES) $(wildcard *.css)
 	makeinfo --html --no-split              \
-	         --css-include=syntax.css       \
+	         --css-include=style-syntax.css \
 	         --css-include=style-common.css \
 	         --css-include=style-single.css \
 	         $(NAME).texi
