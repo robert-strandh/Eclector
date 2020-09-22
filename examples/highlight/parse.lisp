@@ -87,7 +87,33 @@
   (and (typep feature-expression 'symbol-node)
        (search "TRUE" (name feature-expression))))
 
-;; TODO read-time-evaluation
+(defmethod eclector.reader:evaluate-expression
+    ((client highlight-client) (expression t))
+  (labels ((give-up ()
+             (return-from eclector.reader:evaluate-expression
+               expression))
+           (evaluate (expression)
+             (typecase expression
+               (cons
+                (destructuring-bind (head &rest rest)
+                    (map 'list #'evaluate expression)
+                  (unless (member head '(list list* + - * /))
+                    (give-up))
+                  (apply head rest)))
+               (keyword-symbol-node
+                (or (find-symbol (name expression) '#:keyword)
+                    (give-up)))
+               (interned-symbol-node
+                (if (string= (package expression) "CL")
+                    (multiple-value-bind (symbol kind)
+                        (find-symbol (name expression) '#:cl)
+                      (if kind
+                          symbol
+                          (give-up)))
+                    (give-up)))
+               (t
+                expression))))
+    (evaluate expression)))
 
 ;;; Nodes from results
 
