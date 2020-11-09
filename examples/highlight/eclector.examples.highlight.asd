@@ -1,7 +1,13 @@
 (defsystem "eclector.examples.highlight"
-  :depends-on ("eclector")
+  :description "A system for syntax-highlighting Common Lisp code"
+  :license "BSD"
+  :author "Jan Moringen <jmoringe@techfak.uni-bielefeld.de>"
+
+  :depends-on ("alexandria"
+               "eclector")
   :serial     t
   :components ((:file "package")
                (:file "cst")
                (:file "parse")
-               (:file "html")))
+               (:file "html")
+               (:file "ansi-text")))
