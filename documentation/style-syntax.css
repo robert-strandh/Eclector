@@ -6,8 +6,9 @@
    Modified significantly since.
 */
 
-span.message {
+span.syntax-message {
     visibility: hidden;
+
     background-color: beige;
     padding: 12px 12px;
     border-radius: 20px;
@@ -16,13 +17,13 @@ span.message {
     z-index: 1;
 }
 
-.error {
+.syntax-error {
     text-decoration: underline red;
 }
-.error > span.message {
+.syntax-error > span.syntax-message {
     color: red;
 }
-.error:hover > span.message {
+.syntax-error:hover > span.syntax-message {
     visibility: visible;
 }
 
@@ -32,7 +33,7 @@ span.message {
     -moz-text-decoration-style: wavy;
     text-decoration-style: wavy;
 }
-.syntax-bad-whitespace > span.message {
+.syntax-bad-whitespace > span.syntax-message {
     color: orange;
 }
 .syntax-bad-whitespace:hover > span {
@@ -77,7 +78,7 @@ span.message {
     -moz-text-decoration-style: wavy;
     text-decoration-style: wavy;
 }
-.syntax-interned-symbol.syntax-two-package-markers > span.message {
+.syntax-interned-symbol.syntax-two-package-markers > span.syntax-message {
     color: orange;
 }
 .syntax-interned-symbol.syntax-two-package-markers:hover > span {

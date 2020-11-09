@@ -14,7 +14,7 @@ $(NAME).info: $(SOURCES) $(FIGURES)
 $(NAME).pdf: $(SOURCES) $(FIGURES)
 	texi2pdf $(NAME).texi
 
-$(NAME).html: $(SOURCES) $(FIGURES) $(wildcard *.css)
+$(NAME).html: $(SOURCES) $(FIGURES) $(wildcard *.css) highlight-listings.lisp
 	makeinfo --html --no-split              \
 	         --css-include=style-syntax.css \
 	         --css-include=style-common.css \
