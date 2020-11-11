@@ -215,10 +215,9 @@
 
 (defun highlight-string (string &key package client)
   (with-output-to-string (stream)
-    (apply #'highlight string stream (append (when package
-                                               (list :package package))
-                                             (when client
-                                               (list :client client))))))
+    (reinitialize-instance client :stream stream)
+    (apply #'highlight string :client client (when package
+                                               (list :package package)))))
 
 (defun process (input output &key (client (make-instance 'linking-html-client :input input :stream *standard-output*)))
   (a:with-output-to-file (stream output :if-exists :supersede)
