@@ -174,7 +174,7 @@
              (t
               (let* ((html-string (subseq string start end))
                      (string      (replace-entities html-string))
-                     (client      (make-instance 'documentation-client)))
+                     (client      (make-instance 'documentation-client :stream nil))) ; HACK
                 (eclector.examples.highlight::highlight-string string :package package
                                                                       :client  client)))))
      (lambda (string start)
