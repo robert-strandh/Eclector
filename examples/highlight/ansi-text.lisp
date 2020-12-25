@@ -43,7 +43,7 @@
 
 ;;;
 
-(defparameter *theme*
+(defparameter *default-theme*
   '((cst                             . ())
 
     (skipped-node                    . (:foreground :gray))
@@ -70,19 +70,39 @@
     (quasiquote-node                 . (:background :black))
     (unquote-node                    . (:background :default))
 
-    (feature-expression-node         . (:background :yellow))))
+    (feature-expression-node         . (:background :yellow))
+
+    ;; Matching
+    ((open  1)                       . (:foreground :blue))
+    ((open  2)                       . (:foreground :magenta))
+    ((open  3)                       . (:foreground :green))
+    ((open  4)                       . (:foreground :yellow))
+    ((open  5)                       . (:foreground :cyan))
+    ((close 1)                       . (:foreground :blue))
+    ((close 2)                       . (:foreground :magenta))
+    ((close 3)                       . (:foreground :green))
+    ((close 4)                       . (:foreground :yellow))
+    ((close 5)                       . (:foreground :cyan))
+
+    ;; Error
+    (error                           . (:foreground :red :underlinep t))))
 
 (defmethod style-for-class ((class t) (theme t))
-  (multiple-value-bind (style foundp) (a:assoc-value *theme* class)
+  (multiple-value-bind (style foundp)
+      (a:assoc-value theme class :test #'equal)
     (if foundp
         style
         (error "No style for ~A" class))))
 
 ;;; Client
 
-(defclass ansi-text-client ()
+(defclass ansi-text-client (nesting-tracking-mixin)
   ((%stream      :initarg  :stream
                  :reader   stream)
+   (%theme       :initarg  :theme
+                 :reader   theme
+                 :initform *default-theme*)
+   ;; State
    (%style-stack :accessor style-stack
                  :initform (list (make-style :default :default nil))))
   (:default-initargs
@@ -138,8 +158,8 @@
 
 (defmethod enter-node ((client ansi-text-client) (node t))
   (let* ((style-class (a:ensure-car (style-class client node)))
-         (new-style   (style-for-class style-class :theme))
-         (new-style   (apply #'change-style (style client) new-style)))
+         (style       (style-for-class style-class (theme client)))
+         (new-style   (apply #'change-style (style client) style)))
     (push-style! new-style client)))
 
 (defmethod leave-node ((client ansi-text-client) (node t))
@@ -176,24 +196,6 @@
 
 ;;; Quasiquote
 
-(defvar *quasiquote-depth* 0)
-
-(defmethod enter-node ((client ansi-text-client) (node quasiquote-node))
-  (incf *quasiquote-depth*)
-  (call-next-method))
-
-(defmethod leave-node ((client ansi-text-client) (node quasiquote-node))
-  (call-next-method)
-  (decf *quasiquote-depth*))
-
-(defmethod enter-node ((client ansi-text-client) (node unquote-node))
-  (decf *quasiquote-depth*)
-  (call-next-method))
-
-(defmethod leave-node ((client ansi-text-client) (node unquote-node))
-  (call-next-method)
-  (incf *quasiquote-depth*))
-
 ;;; Number
 
 (defmethod style-class ((client ansi-text-client) (node number-node))
@@ -216,46 +218,7 @@
 
 ;;; Sequence
 
-(defvar *nesting-depth* 0)
 
-(defmethod enter-node ((client ansi-text-client) (node sequence-node))
-  (incf *nesting-depth*)
-  (call-next-method))
-
-(defmethod leave-node ((client ansi-text-client) (node sequence-node))
-  (call-next-method)
-  (decf *nesting-depth*))
-
-#+no (defmethod write-character ((client    ansi-text-client)
-                            (position  t)
-                            (character t)
-                            (node      sequence-node)
-                            (stream    t))
-
-  (let* ((start        (start node))
-         (end          (end node))
-         (child-start  (a:when-let ((child (first (children node))))
-                         (start child)))
-         (child-end    (a:when-let ((child (a:lastcar (children node))))
-                         (end child)))
-
-         (open-start?  (and (eql position start) (not (eql start child-start))))
-         (open-end?    (or (and (not child-start) (eql position start))
-                           (eql (1+ position) child-start)))
-
-         (close-start? (or (and (not child-end) (eql position (1- end)))
-                           (eql position child-end)))
-         (close-end?   (and (eql position (1- end)) (not (eql end child-end)))))
-
-    (when open-start?
-      (<span stream "open"))
-    (when close-start?
-      (<span stream "close"))
-    (call-next-method)
-    (when open-end?
-      (/span stream))
-    (when close-end?
-      (/span stream))))
 
 ;;; String
 
@@ -275,9 +238,17 @@
 ;;; Errors
 
 (defmethod enter-errors ((client ansi-text-client) (errors sequence))
-  (format (stream client) "~C[4;31m" #\Escape))
+  (let* ((style     (style-for-class 'error (theme client)))
+         (new-style (apply #'change-style (style client) style)))
+    (push-style! new-style client)))
 
 (defmethod leave-errors ((client ansi-text-client) (errors sequence))
+  (pop-style! client))
+
+#+no (defmethod enter-errors ((client ansi-text-client) (errors sequence))
+       (format (stream client) "~C[4;31m" #\Escape))
+
+#+no (defmethod leave-errors ((client ansi-text-client) (errors sequence))
   (let ((stream (stream client)))
     (write-string "[" stream)
     (loop :for (error rest) :on errors
@@ -286,3 +257,45 @@
           :do (write-string "/" stream))
     (write-string "]" stream)
     (format stream "~C[4;39m" #\Escape)))
+
+;;; `nesting-highlighting-mixin'
+
+(defclass nesting-highlighting-mixin ()
+  ((%point :initarg :point
+           :reader  point)))
+
+(defmethod write-character :around ((client    nesting-highlighting-mixin)
+                                    (position  t)
+                                    (character t)
+                                    (node      sequence-node))
+  (let* ((start (start node))
+         (end   (end node)))
+    (if (<= start (point client) end)
+        (let* ((child-start  (a:when-let ((child (first (children node))))
+                               (start child)))
+               (child-end    (a:when-let ((child (a:lastcar (children node))))
+                               (end child)))
+
+               (open-start?  (and (eql position start) (not (eql start child-start))))
+               (open-end?    (or (and (not child-start) (eql position start))
+                                 (eql (1+ position) child-start)))
+
+               (close-start? (or (and (not child-end) (eql position (1- end)))
+                                 (eql position child-end)))
+               (close-end?   (and (eql position (1- end)) (not (eql end child-end)))))
+          (when open-start?
+            (let* ((name      `(open ,(nesting-depth client)))
+                   (style     (style-for-class name (theme client)))
+                   (new-style (apply #'change-style (style client) style)))
+              (push-style! new-style client)))
+          (when close-start?
+            (let* ((name      `(close ,(nesting-depth client)))
+                   (style     (style-for-class name (theme client)))
+                   (new-style (apply #'change-style (style client) style)))
+              (push-style! new-style client)))
+          (call-next-method)
+          (when open-end?
+            (pop-style! client))
+          (when close-end?
+            (pop-style! client)))
+        (call-next-method))))

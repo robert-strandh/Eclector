@@ -2,6 +2,8 @@
 
 ;;; Utilities
 
+;;; Write CHARACTER to STREAM, replacing CHARACTER with the
+;;; appropriate entity, if necessary.
 (defun ch (stream character)
   (case character
     (#\& (write-string "&amp;" stream))
@@ -91,7 +93,7 @@
 
 ;;; Client
 
-(defclass html-client ()
+(defclass html-client (nesting-tracking-mixin)
   ((%stream :initarg :stream
             :reader  stream))
   (:default-initargs
@@ -99,7 +101,7 @@
 
 ;;; Defaults
 
-(defmethod style-class ((client html-client) (node t))
+(defmethod style-class ((client html-client) (node t)) ; TODO avoid this
   (let ((name (symbol-name (class-name (class-of node)))))
     (string-downcase (subseq name 0 (- (length name) (length "-node"))))))
 
@@ -120,7 +122,11 @@
 
 ;;; Document
 
-(defclass html-document-mixin () ())
+(defclass html-document-mixin ()
+  ()
+  (:documentation
+   "This class is intended to be mixed into client classes that output
+    complete HTML documents."))
 
 (defmethod enter-node ((client html-document-mixin) (node cst))
   (let ((stream (stream client)))
@@ -140,7 +146,11 @@
                       </body>~@
                     </html>~%")))
 
-(defclass html-fragment-mixin () ())
+(defclass html-fragment-mixin ()
+  ()
+  (:documentation
+   "This class is intended to be mixed into client classes that output
+    HTML fragments for embedding into HTML documents."))
 
 (defmethod enter-node ((client html-fragment-mixin) (node cst)))
 
@@ -164,37 +174,66 @@
 (defmethod style-class ((client html-client) (node skipped-node))
   '("comment"))
 
+(defmethod style-class ((client html-client) (node line-comment-node))
+  (list* "line-comment" (call-next-method)))
+
 (defmethod style-class ((client html-client) (node block-comment-node))
   (list* "block-comment" (call-next-method)))
 
-(defmethod style-class ((client html-client) (node line-comment-node))
-  (list* "line-comment" (call-next-method)))
+(defmethod enter-node ((client html-client) (node block-comment-node))
+  (<nesting-with-depth (stream client)
+                       "block-comment"
+                       (block-comment-depth client))
+  (call-next-method))
+
+(defmethod leave-node ((client html-client) (node block-comment-node))
+  (call-next-method)
+  (/span (stream client)))
+
+(defmethod write-character ((client    html-client)
+                            (position  t)
+                            (character t)
+                            (node      block-comment-node))
+  (let* ((start        (start node))
+         (end          (end node))
+         (open-start?  (eql position start))
+         (open-end?    (eql position (+ start 1)))
+         (close-start? (eql position (- end 2)))
+         (close-end?   (eql position (1- end)))
+         (stream       (stream client)))
+    (when open-start?
+      (<span stream "open"))
+    (when close-start?
+      (<span stream "close"))
+    (call-next-method)
+    (when open-end?
+      (/span stream))
+    (when close-end?
+      (/span stream))))
 
 ;;; Quote
 
 ;;; Quasiquote
 
-(defvar *quasiquote-depth* 0)
-
 (defmethod enter-node ((client html-client) (node quasiquote-node))
-  (incf *quasiquote-depth*)
-  (<nesting-with-depth (stream client) "quasiquote" *quasiquote-depth*)
+  (<nesting-with-depth (stream client)
+                       "quasiquote"
+                       (quasiquote-depth client))
   (call-next-method))
 
 (defmethod leave-node ((client html-client) (node quasiquote-node))
   (call-next-method)
-  (/span (stream client))
-  (decf *quasiquote-depth*))
+  (/span (stream client)))
 
 (defmethod enter-node ((client html-client) (node unquote-node))
-  (decf *quasiquote-depth*)
-  (<nesting-with-depth (stream client) "quasiquote" *quasiquote-depth*)
+  (<nesting-with-depth (stream client)
+                       "quasiquote"
+                       (quasiquote-depth client))
   (call-next-method))
 
 (defmethod leave-node ((client html-client) (node unquote-node))
   (call-next-method)
-  (/span (stream client))
-  (incf *quasiquote-depth*))
+  (/span (stream client)))
 
 ;;; Number
 
@@ -225,27 +264,26 @@
 
 ;;; Sequence
 
-(defvar *nesting-depth* 0)
-
 (defmethod enter-node ((client html-client) (node sequence-node))
-  (<nesting-with-depth (stream client) "nesting" (mod *nesting-depth* 10))
-  (incf *nesting-depth*)
+  (<nesting-with-depth (stream client)
+                       "nesting"
+                       (mod (nesting-depth client) 10)) ; TODO where to do the mod TODO do mod for kinds of nesting
   (call-next-method))
 
 (defmethod leave-node ((client html-client) (node sequence-node))
   (call-next-method)
-  (decf *nesting-depth*)
   (/span (stream client)))
 
 (defmethod write-character ((client    html-client)
                             (position  t)
                             (character t)
                             (node      sequence-node))
-  (let* ((start        (start node))
+  (let* ((children     (children node))
+         (start        (start node))
          (end          (end node))
-         (child-start  (a:when-let ((child (first (children node))))
+         (child-start  (a:when-let ((child (first children)))
                          (start child)))
-         (child-end    (a:when-let ((child (a:lastcar (children node))))
+         (child-end    (a:when-let ((child (a:lastcar children)))
                          (end child)))
 
          (open-start?  (and (eql position start) (not (eql start child-start))))

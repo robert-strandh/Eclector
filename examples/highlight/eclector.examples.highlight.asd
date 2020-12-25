@@ -7,7 +7,16 @@
                "eclector")
   :serial     t
   :components ((:file "package")
+               (:file "protocol")
+
                (:file "cst")
-               (:file "parse")
+
+               (:file "read")
+
+               (:file "render")
+               (:file "render-mixins" )
+
+               (:file "interface")
+
                (:file "html")
                (:file "ansi-text")))
