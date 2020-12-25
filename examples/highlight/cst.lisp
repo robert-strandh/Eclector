@@ -28,9 +28,7 @@
   ((%parent :initarg  :parent
             :reader   parent
             :writer   (setf %parent)
-            :initform nil)
-   (%children :initarg  :children
-              :reader   children)))
+            :initform nil)))
 
 (defclass children-mixin ()
   ((%children :initarg  :children

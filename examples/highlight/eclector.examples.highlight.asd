@@ -6,17 +6,21 @@
   :depends-on ("alexandria"
                "eclector")
   :serial     t
-  :components ((:file "package")
-               (:file "protocol")
+  :components ((:file       "package")
+               (:file       "protocol")
 
-               (:file "cst")
+               (:file       "cst")
 
-               (:file "read")
+               (:file       "read")
 
-               (:file "render")
-               (:file "render-mixins" )
+               (:module     "render"
+                :serial     t
+                :components ((:file "package")
+                             (:file "protocol")
 
-               (:file "interface")
+                             (:file "mixins")
 
-               (:file "html")
-               (:file "ansi-text")))
+                             (:file "html")
+                             (:file "ansi-text")))
+
+               (:file       "interface")))

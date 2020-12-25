@@ -29,35 +29,3 @@
 
 (defgeneric result-node-class (result)
   )
-
-;;; Client protocol
-
-(defgeneric write-character (client position character node)
-  (:documentation
-   ""))
-
-(defgeneric enter-node (client node)
-  (:documentation
-   ""))
-
-(defgeneric leave-node (client node)
-  (:documentation
-   ""))
-
-(defgeneric enter-errors (client errors)
-  (:documentation
-   ""))
-
-(defgeneric leave-errors (client errors)
-  (:documentation
-   ""))
-
-;;;
-
-(defgeneric style-class (client node)
-  (:documentation
-   ""))
-
-(defgeneric url (client node)
-  (:documentation
-   ""))

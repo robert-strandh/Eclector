@@ -1,4 +1,38 @@
-(cl:in-package #:eclector.examples.highlight)
+(cl:in-package #:eclector.examples.highlight.render)
+
+;;; Client protocol
+
+(defgeneric write-character (client position character node)
+  (:documentation
+   ""))
+
+(defgeneric enter-node (client node)
+  (:documentation
+   ""))
+
+(defgeneric leave-node (client node)
+  (:documentation
+   ""))
+
+(defgeneric enter-errors (client errors)
+  (:documentation
+   ""))
+
+(defgeneric leave-errors (client errors)
+  (:documentation
+   ""))
+
+;;;
+
+(defgeneric style-class (client node)
+  (:documentation
+   ""))
+
+(defgeneric url (client node)
+  (:documentation
+   ""))
+
+;;; Entry point
 
 (defun render (client input-string cst errors)
   (let ((node cst)
@@ -6,19 +40,19 @@
         )
     (flet ((maybe-end-errors (position)
              (a:when-let ((errors (remove position errors
-                                          :test-not #'eql :key #'end)))
+                                          :test-not #'eql :key #'cst:end)))
                (leave-errors client errors)))
            (maybe-start-errors (position)
              (a:when-let ((errors (remove position errors
-                                          :test-not #'eql :key #'start)))
+                                          :test-not #'eql :key #'cst:start)))
                (enter-errors client errors)))
            (maybe-leave-nodes (position)
-             (loop :while (eql position (end node))
+             (loop :while (eql position (cst:end node))
                    :do (leave-node client node)
                        ; (pop stack)
-                       (setf node (parent node))))
+                       (setf node (cst:parent node))))
            (maybe-enter-node (position)
-             (a:when-let ((child (find position (children node) :key #'start)))
+             (a:when-let ((child (find position (cst:children node) :key #'cst:start)))
                (enter-node client child)
                ; (push child stack)
                (setf node child))))
@@ -36,13 +70,13 @@
 
             :finally (let ((end (1+ position)))
                        (when (and (eql character #\Newline)
-                                  (find end errors :test #'eql :key #'end))
+                                  (find end errors :test #'eql :key #'cst:end))
                          (write-char #\¶ (stream client)))
                        (maybe-end-errors end)
 
                        (loop :while node
                              :do (leave-node client node)
-                                 (setf node (parent node)))
+                                 (setf node (cst:parent node)))
                        #+no (map nil (lambda (node)
-                                  (leave-node client node))
-                            stack))))))
+                                       (leave-node client node))
+                                 stack))))))

@@ -1,4 +1,4 @@
-(cl:in-package #:eclector.examples.highlight)
+(cl:in-package #:eclector.examples.highlight.render)
 
 ;;; Utilities
 
@@ -93,11 +93,9 @@
 
 ;;; Client
 
-(defclass html-client (nesting-tracking-mixin)
-  ((%stream :initarg :stream
-            :reader  stream))
-  (:default-initargs
-   :stream (a:required-argument :stream)))
+(defclass html-client (stream-mixin
+                       nesting-tracking-mixin)
+  ())
 
 ;;; Defaults
 
@@ -128,7 +126,7 @@
    "This class is intended to be mixed into client classes that output
     complete HTML documents."))
 
-(defmethod enter-node ((client html-document-mixin) (node cst))
+(defmethod enter-node ((client html-document-mixin) (node cst::cst))
   (let ((stream (stream client)))
     (format stream "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" ~
                     \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">~@
@@ -140,7 +138,7 @@
                       <body>~@
                         <pre>~%")))
 
-(defmethod leave-node ((client html-document-mixin) (node cst))
+(defmethod leave-node ((client html-document-mixin) (node cst::cst))
   (let ((stream (stream client)))
     (format stream "   </pre>~@
                       </body>~@
@@ -152,9 +150,9 @@
    "This class is intended to be mixed into client classes that output
     HTML fragments for embedding into HTML documents."))
 
-(defmethod enter-node ((client html-fragment-mixin) (node cst)))
+(defmethod enter-node ((client html-fragment-mixin) (node cst::cst)))
 
-(defmethod leave-node ((client html-fragment-mixin) (node cst)))
+(defmethod leave-node ((client html-fragment-mixin) (node cst::cst)))
 
 ;;;
 
@@ -171,31 +169,31 @@
 
 ;;; Skipped
 
-(defmethod style-class ((client html-client) (node skipped-node))
+(defmethod style-class ((client html-client) (node cst::skipped-node))
   '("comment"))
 
-(defmethod style-class ((client html-client) (node line-comment-node))
+(defmethod style-class ((client html-client) (node cst::line-comment-node))
   (list* "line-comment" (call-next-method)))
 
-(defmethod style-class ((client html-client) (node block-comment-node))
+(defmethod style-class ((client html-client) (node cst::block-comment-node))
   (list* "block-comment" (call-next-method)))
 
-(defmethod enter-node ((client html-client) (node block-comment-node))
+(defmethod enter-node ((client html-client) (node cst::block-comment-node))
   (<nesting-with-depth (stream client)
                        "block-comment"
                        (block-comment-depth client))
   (call-next-method))
 
-(defmethod leave-node ((client html-client) (node block-comment-node))
+(defmethod leave-node ((client html-client) (node cst::block-comment-node))
   (call-next-method)
   (/span (stream client)))
 
 (defmethod write-character ((client    html-client)
                             (position  t)
                             (character t)
-                            (node      block-comment-node))
-  (let* ((start        (start node))
-         (end          (end node))
+                            (node      cst::block-comment-node))
+  (let* ((start        (cst:start node))
+         (end          (cst:end node))
          (open-start?  (eql position start))
          (open-end?    (eql position (+ start 1)))
          (close-start? (eql position (- end 2)))
@@ -215,42 +213,42 @@
 
 ;;; Quasiquote
 
-(defmethod enter-node ((client html-client) (node quasiquote-node))
+(defmethod enter-node ((client html-client) (node cst::quasiquote-node))
   (<nesting-with-depth (stream client)
                        "quasiquote"
                        (quasiquote-depth client))
   (call-next-method))
 
-(defmethod leave-node ((client html-client) (node quasiquote-node))
+(defmethod leave-node ((client html-client) (node cst::quasiquote-node))
   (call-next-method)
   (/span (stream client)))
 
-(defmethod enter-node ((client html-client) (node unquote-node))
+(defmethod enter-node ((client html-client) (node cst::unquote-node))
   (<nesting-with-depth (stream client)
                        "quasiquote"
                        (quasiquote-depth client))
   (call-next-method))
 
-(defmethod leave-node ((client html-client) (node unquote-node))
+(defmethod leave-node ((client html-client) (node cst::unquote-node))
   (call-next-method)
   (/span (stream client)))
 
 ;;; Number
 
-(defmethod style-class ((client html-client) (node number-node))
+(defmethod style-class ((client html-client) (node cst::number-node))
   "number")
 
 ;;; Symbol
 
-(defmethod leave-node :before ((client html-client) (node interned-symbol-node))
-  (when (intern? node)
+(defmethod leave-node :before ((client html-client) (node cst::interned-symbol-node))
+  (when (cst:intern? node)
     (let ((stream (stream client)))
       (<span stream "message")
       (write-string "Do not use unexported symbols." stream)
       (/span stream))))
 
-(defmethod style-class ((client html-client) (node interned-symbol-node)) ; TODO return list and use APPEND method combination?
-  (if (intern? node)
+(defmethod style-class ((client html-client) (node cst::interned-symbol-node)) ; TODO return list and use APPEND method combination?
+  (if (cst:intern? node)
       (list* "two-package-markers" (a:ensure-list (call-next-method)))
       (call-next-method)))
 
@@ -258,33 +256,33 @@
   (or (string= string (package-name package))
       (member string (package-nicknames package) :test #'string=)))
 
-(defmethod url ((client link-mixin) (node interned-symbol-node))
-  (when (name-of-package? (package node) "CL")
-    (format nil "http://l1sp.org/cl/~(~A~)" (name node))))
+(defmethod url ((client link-mixin) (node cst::interned-symbol-node))
+  (when (name-of-package? (cst:package node) "CL")
+    (format nil "http://l1sp.org/cl/~(~A~)" (cst:name node))))
 
 ;;; Sequence
 
-(defmethod enter-node ((client html-client) (node sequence-node))
+(defmethod enter-node ((client html-client) (node cst::sequence-node))
   (<nesting-with-depth (stream client)
                        "nesting"
                        (mod (nesting-depth client) 10)) ; TODO where to do the mod TODO do mod for kinds of nesting
   (call-next-method))
 
-(defmethod leave-node ((client html-client) (node sequence-node))
+(defmethod leave-node ((client html-client) (node cst::sequence-node))
   (call-next-method)
   (/span (stream client)))
 
 (defmethod write-character ((client    html-client)
                             (position  t)
                             (character t)
-                            (node      sequence-node))
-  (let* ((children     (children node))
-         (start        (start node))
-         (end          (end node))
+                            (node      cst::sequence-node))
+  (let* ((children     (cst:children node))
+         (start        (cst:start node))
+         (end          (cst:end node))
          (child-start  (a:when-let ((child (first children)))
-                         (start child)))
+                         (cst:start child)))
          (child-end    (a:when-let ((child (a:lastcar children)))
-                         (end child)))
+                         (cst:end child)))
 
          (open-start?  (and (eql position start) (not (eql start child-start))))
          (open-end?    (or (and (not child-start) (eql position start))
@@ -306,17 +304,17 @@
 
 ;;; String
 
-(defmethod style-class ((client html-client) (node string-node))
+(defmethod style-class ((client html-client) (node cst::string-node))
   "string")
 
 ;;; Vector
 
-(defmethod style-class ((client html-client) (node vector-node))
+(defmethod style-class ((client html-client) (node cst::vector-node))
   "vector")
 
 ;;; Cons
 
-(defmethod style-class ((client html-client) (node cons-node))
+(defmethod style-class ((client html-client) (node cst::cons-node))
   "cons")
 
 ;;; Errors
@@ -328,7 +326,7 @@
   (let ((stream (stream client)))
     (<span stream "message")
     (loop :for (error rest) :on errors
-          :do (str stream (message error))
+          :do (str stream (cst:message error))
           :when rest
           :do (write-string "<br/>" stream))
     (/span stream)

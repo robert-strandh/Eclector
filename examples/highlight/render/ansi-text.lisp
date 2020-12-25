@@ -1,4 +1,4 @@
-(cl:in-package #:eclector.examples.highlight)
+(cl:in-package #:eclector.examples.highlight.render)
 
 ;;; Style
 
@@ -96,10 +96,9 @@
 
 ;;; Client
 
-(defclass ansi-text-client (nesting-tracking-mixin)
-  ((%stream      :initarg  :stream
-                 :reader   stream)
-   (%theme       :initarg  :theme
+(defclass ansi-text-client (stream-mixin
+                            nesting-tracking-mixin)
+  ((%theme       :initarg  :theme
                  :reader   theme
                  :initform *default-theme*)
    ;; State
@@ -173,23 +172,23 @@
 
 ;;; Document
 
-(defmethod enter-node :before ((client ansi-text-client) (node cst))
+(defmethod enter-node :before ((client ansi-text-client) (node cst::cst))
   (apply-style client))
 
-(defmethod leave-node :after ((client ansi-text-client) (node cst))
+(defmethod leave-node :after ((client ansi-text-client) (node cst::cst))
   (finish-output (stream client)))
 
 ;;; Nothing to do?
 
 ;;; Skipped
 
-(defmethod style-class ((client ansi-text-client) (node skipped-node))
+(defmethod style-class ((client ansi-text-client) (node cst::skipped-node))
   'comment)
 
-(defmethod style-class ((client ansi-text-client) (node block-comment-node))
+(defmethod style-class ((client ansi-text-client) (node cst::block-comment-node))
   (list* 'block-comment (call-next-method)))
 
-(defmethod style-class ((client ansi-text-client) (node line-comment-node))
+(defmethod style-class ((client ansi-text-client) (node cst::line-comment-node))
   (list* 'line-comment (call-next-method)))
 
 ;;; Quote
@@ -198,7 +197,7 @@
 
 ;;; Number
 
-(defmethod style-class ((client ansi-text-client) (node number-node))
+(defmethod style-class ((client ansi-text-client) (node cst::number-node))
   'number)
 
 ;;; Symbol
@@ -222,17 +221,17 @@
 
 ;;; String
 
-(defmethod style-class ((client ansi-text-client) (node string-node))
+(defmethod style-class ((client ansi-text-client) (node cst::string-node))
   'string)
 
 ;;; Vector
 
-(defmethod style-class ((client ansi-text-client) (node vector-node))
+(defmethod style-class ((client ansi-text-client) (node cst::vector-node))
   'vector)
 
 ;;; Cons
 
-(defmethod style-class ((client ansi-text-client) (node cons-node))
+(defmethod style-class ((client ansi-text-client) (node cst::cons-node))
   'cons)
 
 ;;; Errors
@@ -267,14 +266,15 @@
 (defmethod write-character :around ((client    nesting-highlighting-mixin)
                                     (position  t)
                                     (character t)
-                                    (node      sequence-node))
-  (let* ((start (start node))
-         (end   (end node)))
+                                    (node      cst::sequence-node))
+  (let* ((children (cst:children node))
+         (start    (cst:start node))
+         (end      (cst:end node)))
     (if (<= start (point client) end)
-        (let* ((child-start  (a:when-let ((child (first (children node))))
-                               (start child)))
-               (child-end    (a:when-let ((child (a:lastcar (children node))))
-                               (end child)))
+        (let* ((child-start  (a:when-let ((child (first children)))
+                               (cst:start child)))
+               (child-end    (a:when-let ((child (a:lastcar children)))
+                               (cst:end child)))
 
                (open-start?  (and (eql position start) (not (eql start child-start))))
                (open-end?    (or (and (not child-start) (eql position start))
