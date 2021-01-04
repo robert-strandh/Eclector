@@ -27,6 +27,20 @@
 (defgeneric interpret-symbol (client input-stream
                               package-indicator symbol-name internp))
 
+(defgeneric valid-symbol-p (client symbol purpose)
+  (:method ((client t) (symbol t) (purpose t))
+    nil)
+  (:method ((client t) (symbol t) (purpose (eql :structure-slot-name)))
+    (typep symbol 'alexandria:string-designator))
+  (:method ((client t) (symbol symbol) (purpose t))
+    t))
+
+(defgeneric valid-package-p (client package purpose)
+  (:method ((client t) (package t) (purpose t))
+    nil)
+  (:method ((client t) (package package) (purpose t))
+    t))
+
 ;;; Calling reader macros and behavior of standard reader macros
 
 (defgeneric call-reader-macro (client input-stream char readtable)
