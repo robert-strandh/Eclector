@@ -70,6 +70,15 @@
              (when package
                (list :package package :intern? intern?))))))
 
+(defmethod eclector.reader::valid-symbol-p ((client  highlight-client)
+                                            (symbol  symbol-node)
+                                            (purpose t))
+  t)
+
+(defmethod eclector.reader:make-structure-instance
+    ((client highlight-client) (name t) (initargs t))
+  (make-instance 'structure-node))
+
 (defmethod eclector.reader:check-feature-expression
     ((client highlight-client) (feature-expression symbol-node))
   t)

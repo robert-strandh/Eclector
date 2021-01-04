@@ -158,6 +158,11 @@
 (defmethod result-node-class ((result symbol))
   'symbol-node)
 
+;;; Structure literal
+
+(defclass structure-node (inner-node)
+  ())
+
 ;;; Array
 
 (defclass array-node (object-node-mixin
