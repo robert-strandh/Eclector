@@ -574,7 +574,7 @@
         (multiple-value-bind (symbol status)
             (find-symbol symbol-name package)
           (cond ((null status)
-                 (%reader-error input-stream 'symbol-does-not-exist
+                 (%reader-error input-stream 'symbol-does-not-exist ; TODO make recoverable
                                 :package package
                                 :symbol-name symbol-name))
                 ((eq status :internal)
