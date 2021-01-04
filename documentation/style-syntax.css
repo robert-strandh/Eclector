@@ -64,12 +64,12 @@ span.syntax-message {
     color: #921;
 }
 
-.syntax-lambda-list-keyword-symbol {
-    color: #991;
+.syntax-interned-symbol,.syntax-standard-symbol {
+    color: #423;
 }
 
-.syntax-interned-symbol {
-    color: #423;
+.syntax-lambda-list-keyword-symbol {
+    color: #991;
 }
 
 .syntax-interned-symbol.syntax-two-package-markers {
@@ -123,16 +123,6 @@ code a[href].syntax-keyword-symbol {
     color: #921;
 }
 
-tt a[href].syntax-lambda-list-keyword-symbol {
-    color: #991;
-}
-pre.lisp a[href].syntax-lambda-list-keyword-symbol {
-    color: #991;
-}
-code a[href].syntax-lambda-list-keyword-symbol {
-    color: #991;
-}
-
 tt a[href].syntax-interned-symbol {
     color: #423;
 }
@@ -141,6 +131,26 @@ pre.lisp a[href].syntax-interned-symbol {
 }
 code a[href].syntax-interned-symbol {
     color: #423;
+}
+
+tt a[href].syntax-standard-symbol {
+    color: #423;
+}
+pre.lisp a[href].syntax-standard-symbol {
+    color: #423;
+}
+code a[href].syntax-standard-symbol {
+    color: #423;
+}
+
+tt a[href].syntax-lambda-list-keyword-symbol {
+    color: #991;
+}
+pre.lisp a[href].syntax-lambda-list-keyword-symbol {
+    color: #991;
+}
+code a[href].syntax-lambda-list-keyword-symbol {
+    color: #991;
 }
 
 tt a[href]:hover {

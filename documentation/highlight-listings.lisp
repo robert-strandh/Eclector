@@ -61,22 +61,22 @@
           (when package-name
             (escape-for-anchor (format nil "[~(~A~)]" package-name)))))
 
-(defclass documentation-client (eclector.examples.highlight::link-mixin
-                                eclector.examples.highlight::html-fragment-mixin
-                                eclector.examples.highlight::html-client)
+(defclass documentation-client (eclector.examples.highlight.render::link-mixin
+                                eclector.examples.highlight.render::html-fragment-mixin
+                                eclector.examples.highlight.render::html-client)
   ())
 
-#+no (defmethod eclector.examples.highlight::url :around ((client documentation-client)
-                                                     (node   eclector.examples.highlight::interned-symbol-node))
+#+no (defmethod eclector.examples.highlight.render::url :around ((client documentation-client)
+                                                     (node   eclector.examples.highlight.cst:interned-symbol-node))
   (let ((url (call-next-method)))
     (when url
       (format t "~A -> ~A~%" node url))
     url))
 
-(defmethod eclector.examples.highlight::url ((client documentation-client)
-                                             (node   eclector.examples.highlight::interned-symbol-node))
-  (let ((name    (eclector.examples.highlight::name node))
-        (package (eclector.examples.highlight::package node)))
+(defmethod eclector.examples.highlight.render::url ((client documentation-client)
+                                                    (node   eclector.examples.highlight.cst:interned-symbol-node))
+  (let ((name    (eclector.examples.highlight.cst:name node))
+        (package (eclector.examples.highlight.cst:package node)))
     (if (and (or (string= package "ECLECTOR.READER")
                  (string= package "READTABLE") (string= package "ECLECTOR.READTABLE")
                  (string= package "PARSE-RESULT") (string= package "ECLECTOR.PARSE-RESULT")
@@ -86,17 +86,17 @@
         (format nil "#index-~A" (name->anchor name package))
         (call-next-method))))
 
-(defmethod eclector.examples.highlight::write-character ((client    documentation-client)
-                                                         (position  t)
-                                                         (character t)
-                                                         (node      eclector.examples.highlight::interned-symbol-node))
-  (let ((name (eclector.examples.highlight::name node)))
+(defmethod eclector.examples.highlight.render:write-character ((client    documentation-client)
+                                                               (position  t)
+                                                               (character t)
+                                                               (node      eclector.examples.highlight.cst:interned-symbol-node))
+  (let ((name (eclector.examples.highlight.cst:name node)))
     (if (or (eql 0 (search "<EM>" name))
             (eql 0 (search "<VAR>" name)))
-        (let ((relative-position (- position (eclector.examples.highlight::start node))))
+        (let ((relative-position (- position (eclector.examples.highlight.cst:start node))))
           (if (or (<= relative-position 4)
                   (>= relative-position (- (length name) 6)))
-              (write-char (char-downcase character) (eclector.examples.highlight::stream client))
+              (write-char (char-downcase character) (eclector.examples.highlight.render:stream client))
               (call-next-method)))
         (call-next-method))))
 
