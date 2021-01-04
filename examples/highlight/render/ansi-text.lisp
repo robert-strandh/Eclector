@@ -1,11 +1,25 @@
 (cl:in-package #:eclector.examples.highlight.render)
 
 ;;; Style
+;;;
+;;; A `style' specifies (a complete set of) attributes such as
+;;; foreground color and background color of characters being
+;;; output. `change-style' turns a base style and (possibly partially
+;;; specified) style attributes into a complete `style'.
+
+(deftype basic-color ()
+  `(member :black :red :green :yellow :blue :magenta :cyan :white :default :gray))
+
+(deftype foreground-color ()
+  `(or basic-color
+       (member :bright-red :bright-green :bright-yellow :bright-white)))
 
 (defclass style ()
   ((%foreground :initarg :foreground
+                :type    foreground-color
                 :reader  foreground)
    (%background :initarg :background
+                :type    basic-color
                 :reader  background)
    (%underlinep :initarg :underlinep
                 :reader  underlinep)))
@@ -13,9 +27,7 @@
 (defmethod print-object ((object style) stream)
   (print-unreadable-object (object stream :identity t :type t)
     (format stream "~A ~A~:[~; underline~]"
-            (foreground object)
-            (background object)
-            (underlinep object))))
+            (foreground object) (background object) (underlinep object))))
 
 (defun make-style (foreground background underlinep)
   (make-instance 'style :foreground foreground
@@ -41,7 +53,11 @@
         current
         (make-style new-foreground new-background new-underline))))
 
+;;; Default theme
 ;;;
+;;; A theme associates classes of CST nodes with (partial)
+;;; styles. `style-for-class' looks up (partial) style attributes for
+;;; a given CST node class.
 
 (defparameter *default-theme*
   '((cst                        . ())
@@ -106,7 +122,9 @@
                  :initform *default-theme*)
    ;; State
    (%style-stack :accessor style-stack
-                 :initform (list (make-style :default :default nil))))
+                 :initform (list (make-style :default :default nil))
+                 :documentation
+                 "A stack of (complete) `style' instances."))
   (:default-initargs
    :stream (a:required-argument :stream)))
 
@@ -156,14 +174,15 @@
 ;;; Defaults
 
 (defmethod style-class ((client ansi-text-client) (node t))
+  ;; As a default, derive the style class from the class name of NODE.
   (let* ((name    (symbol-name (class-name (class-of node))))
          (trimmed (subseq name 0 (- (length name) (length "-node")))))
     (find-symbol trimmed (load-time-value '#:eclector.examples.highlight))))
 
 (defmethod enter-node ((client ansi-text-client) (node t))
-  (let* ((style-class (a:ensure-car (style-class client node)))
-         (style       (style-for-class style-class (theme client)))
-         (new-style   (apply #'change-style (style client) style)))
+  (let* ((style-class    (style-class client node))
+         (new-attributes (style-for-class style-class (theme client)))
+         (new-style      (apply #'change-style (style client) style)))
     (push-style! new-style client)))
 
 (defmethod leave-node ((client ansi-text-client) (node t))
