@@ -44,48 +44,51 @@
 ;;;
 
 (defparameter *default-theme*
-  '((cst                             . ())
+  '((cst                        . ())
 
-    (skipped-node                    . (:foreground :gray))
-    (line-comment-node               . (:foreground :gray))
+    (skipped                    . (:foreground :gray))
+    (line-comment               . (:foreground :gray))
+    (block-comment              . (:foreground :gray))
 
-    (symbol-node                     . (:foreground :green))
-    (uninterned-symbol-node          . (:foreground :default))
-    (keyword-symbol-node             . (:foreground :magenta))
-    (interned-symbol-node            . (:foreground :default))
-    (lambda-list-keyword-symbol-node . (:foreground :magenta))
-    (two-package-markers             . (:background :red))
+    (symbol                     . (:foreground :green))
+    (uninterned-symbol          . (:foreground :default))
+    (keyword-symbol             . (:foreground :magenta))
+    (interned-symbol            . (:foreground :default))
+    (lambda-list-keyword-symbol . (:foreground :magenta))
+    (two-package-markers        . (:background :red))
 
-    (number-node                     . (:foreground :blue))
+    (number                     . (:foreground :blue))
 
-    (cons                            . ())
-    (vector                          . (:foreground :yellow))
-    (array-node                      . (:foreground :yellow))
-    (character-node                  . (:foreground :yellow))
-    (string                          . (:foreground :yellow))
-    (pathname-node                   . (:foreground :yellow :underlinep t))
+    (cons                       . ())
+    (vector                     . (:foreground :yellow))
+    (array                      . (:foreground :yellow))
+    (character                  . (:foreground :yellow))
+    (string                     . (:foreground :yellow))
+    (pathname                   . (:foreground :yellow :underlinep t))
 
-    (function-node                   . (:background :blue))
-    (quote-node                      . (:background :gray))
-    (quasiquote-node                 . (:background :black))
-    (unquote-node                    . (:background :default))
+    (structure                  . ())
 
-    (feature-expression-node         . (:background :yellow))
+    (feature-expression         . (:background :yellow))
+
+    (function                   . (:background :blue))
+    (quote                      . (:background :gray))
+    (quasiquote                 . (:background :black))
+    (unquote                    . (:background :default))
 
     ;; Matching
-    ((open  1)                       . (:foreground :blue))
-    ((open  2)                       . (:foreground :magenta))
-    ((open  3)                       . (:foreground :green))
-    ((open  4)                       . (:foreground :yellow))
-    ((open  5)                       . (:foreground :cyan))
-    ((close 1)                       . (:foreground :blue))
-    ((close 2)                       . (:foreground :magenta))
-    ((close 3)                       . (:foreground :green))
-    ((close 4)                       . (:foreground :yellow))
-    ((close 5)                       . (:foreground :cyan))
+    ((open  1)                  . (:foreground :blue))
+    ((open  2)                  . (:foreground :magenta))
+    ((open  3)                  . (:foreground :green))
+    ((open  4)                  . (:foreground :yellow))
+    ((open  5)                  . (:foreground :cyan))
+    ((close 1)                  . (:foreground :blue))
+    ((close 2)                  . (:foreground :magenta))
+    ((close 3)                  . (:foreground :green))
+    ((close 4)                  . (:foreground :yellow))
+    ((close 5)                  . (:foreground :cyan))
 
     ;; Error
-    (error                           . (:foreground :red :underlinep t))))
+    (error                      . (:foreground :red :underlinep t))))
 
 (defmethod style-for-class ((class t) (theme t))
   (multiple-value-bind (style foundp)
@@ -153,7 +156,9 @@
 ;;; Defaults
 
 (defmethod style-class ((client ansi-text-client) (node t))
-  (class-name (class-of node)))
+  (let* ((name    (symbol-name (class-name (class-of node))))
+         (trimmed (subseq name 0 (- (length name) (length "-node")))))
+    (find-symbol trimmed (load-time-value '#:eclector.examples.highlight))))
 
 (defmethod enter-node ((client ansi-text-client) (node t))
   (let* ((style-class (a:ensure-car (style-class client node)))
@@ -172,33 +177,11 @@
 
 ;;; Document
 
-(defmethod enter-node :before ((client ansi-text-client) (node cst::cst))
+(defmethod enter-node ((client ansi-text-client) (node cst::cst))
   (apply-style client))
 
-(defmethod leave-node :after ((client ansi-text-client) (node cst::cst))
+(defmethod leave-node ((client ansi-text-client) (node cst::cst))
   (finish-output (stream client)))
-
-;;; Nothing to do?
-
-;;; Skipped
-
-(defmethod style-class ((client ansi-text-client) (node cst::skipped-node))
-  'comment)
-
-(defmethod style-class ((client ansi-text-client) (node cst::block-comment-node))
-  (list* 'block-comment (call-next-method)))
-
-(defmethod style-class ((client ansi-text-client) (node cst::line-comment-node))
-  (list* 'line-comment (call-next-method)))
-
-;;; Quote
-
-;;; Quasiquote
-
-;;; Number
-
-(defmethod style-class ((client ansi-text-client) (node cst::number-node))
-  'number)
 
 ;;; Symbol
 
@@ -214,25 +197,6 @@
 #+later (defun name-of-package? (string package)
   (or (string= string (package-name package))
       (member string (package-nicknames package) :test #'string=)))
-
-;;; Sequence
-
-
-
-;;; String
-
-(defmethod style-class ((client ansi-text-client) (node cst::string-node))
-  'string)
-
-;;; Vector
-
-(defmethod style-class ((client ansi-text-client) (node cst::vector-node))
-  'vector)
-
-;;; Cons
-
-(defmethod style-class ((client ansi-text-client) (node cst::cons-node))
-  'cons)
 
 ;;; Errors
 
