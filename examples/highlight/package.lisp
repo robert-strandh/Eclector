@@ -6,23 +6,9 @@
    #:package)
 
   (:local-nicknames
-   (#:a #:alexandria))
+   (#:a   #:alexandria)
 
-  ;; Concrete syntax tree protocol
-  (:export
-   #:source
-   #:start
-   #:end
-
-   #:object
-   #:parent
-   #:children
-
-   #:name
-   #:package
-   #:intern?
-
-   #:message)
+   (#:cst #:eclector.examples.highlight.cst))
 
   (:export
    #:highlight))

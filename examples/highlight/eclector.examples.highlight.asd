@@ -6,10 +6,13 @@
   :depends-on ("alexandria"
                "eclector")
   :serial     t
-  :components ((:file       "package")
-               (:file       "protocol")
+  :components ((:module     "cst"
+                :components ((:file       "package")
+                             (:file       "protocol")
+                             (:file       "nodes")))
 
-               (:file       "cst")
+               (:file       "package")
+               (:file       "protocol")
 
                (:file       "read")
 

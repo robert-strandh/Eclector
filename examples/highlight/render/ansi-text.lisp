@@ -21,37 +21,47 @@
    (%background :initarg :background
                 :type    basic-color
                 :reader  background)
+   (%boldp      :initarg :boldp
+                :reader  boldp)
    (%underlinep :initarg :underlinep
                 :reader  underlinep)))
 
 (defmethod print-object ((object style) stream)
   (print-unreadable-object (object stream :identity t :type t)
-    (format stream "~A ~A~:[~; underline~]"
-            (foreground object) (background object) (underlinep object))))
+    (format stream "~A ~A~:[~; underline~]~:[~; bold~]"
+            (foreground object) (background object)
+            (boldp object) (underlinep object))))
 
-(defun make-style (foreground background underlinep)
+(defun make-style (foreground background boldp underlinep)
   (make-instance 'style :foreground foreground
                         :background background
+                        :boldp      boldp
                         :underlinep underlinep))
 
 (defun change-style (current &key foreground
                                   background
+                                  (boldp      nil boldp-suppliedp)
                                   (underlinep nil underlinep-suppliedp))
   (let* ((current-foreground (foreground current))
          (current-background (background current))
+         (current-bold       (boldp current))
          (current-underline  (underlinep current))
          (new-foreground     (or foreground
                                  current-foreground))
          (new-background     (or background
                                  current-background))
+         (new-bold           (if boldp-suppliedp
+                                 boldp
+                                 current-bold))
          (new-underline      (if underlinep-suppliedp
                                  underlinep
                                  current-underline)))
     (if (and (eql new-foreground current-foreground)
              (eql new-background current-background)
+             (eql new-bold current-bold)
              (eql new-underline current-underline))
         current
-        (make-style new-foreground new-background new-underline))))
+        (make-style new-foreground new-background new-bold new-underline))))
 
 ;;; Default theme
 ;;;
@@ -60,7 +70,7 @@
 ;;; a given CST node class.
 
 (defparameter *default-theme*
-  '((cst                        . ())
+  '((root                       . ())
 
     (skipped                    . (:foreground :gray))
     (line-comment               . (:foreground :gray))
@@ -70,6 +80,7 @@
     (uninterned-symbol          . (:foreground :default))
     (keyword-symbol             . (:foreground :magenta))
     (interned-symbol            . (:foreground :default))
+    (standard-symbol            . (:foreground :default :boldp t))
     (lambda-list-keyword-symbol . (:foreground :magenta))
     (two-package-markers        . (:background :red))
 
@@ -122,7 +133,7 @@
                  :initform *default-theme*)
    ;; State
    (%style-stack :accessor style-stack
-                 :initform (list (make-style :default :default nil))
+                 :initform (list (make-style :default :default nil nil))
                  :documentation
                  "A stack of (complete) `style' instances."))
   (:default-initargs
@@ -141,7 +152,7 @@
 
 (defmethod apply-style ((client ansi-text-client))
   (let ((style (style client)))
-    (format (stream client) "~C[~D;~D;~:[24~;4~]m"
+    (format (stream client) "~C[~D;~D;~:[22~;1~];~:[24~;4~]m"
             #\Escape
             (ecase (background style)
               (:black    40)
@@ -169,6 +180,7 @@
               (:bright-green  92)
               (:bright-yellow 93)
               (:bright-white  97))
+            (boldp style)
             (underlinep style))))
 
 ;;; Defaults
@@ -177,12 +189,12 @@
   ;; As a default, derive the style class from the class name of NODE.
   (let* ((name    (symbol-name (class-name (class-of node))))
          (trimmed (subseq name 0 (- (length name) (length "-node")))))
-    (find-symbol trimmed (load-time-value '#:eclector.examples.highlight))))
+    (find-symbol trimmed (load-time-value '#:eclector.examples.highlight.render))))
 
 (defmethod enter-node ((client ansi-text-client) (node t))
   (let* ((style-class    (style-class client node))
          (new-attributes (style-for-class style-class (theme client)))
-         (new-style      (apply #'change-style (style client) style)))
+         (new-style      (apply #'change-style (style client) new-attributes)))
     (push-style! new-style client)))
 
 (defmethod leave-node ((client ansi-text-client) (node t))
@@ -196,51 +208,61 @@
 
 ;;; Document
 
-(defmethod enter-node ((client ansi-text-client) (node cst::cst))
+(defmethod enter-node ((client ansi-text-client) (node cst:root-node))
   (apply-style client))
 
-(defmethod leave-node ((client ansi-text-client) (node cst::cst))
+(defmethod leave-node ((client ansi-text-client) (node cst:root-node))
   (finish-output (stream client)))
 
 ;;; Symbol
 
-#+later (defmethod leave-node :before ((client t) (node interned-symbol-node) (stream t))
-  (when (intern? node)
-    (format stream "<span class=\"message\">~A</span>" "Do not use unexported symbols.")))
-
-#+later (defmethod style-class ((client t) (node interned-symbol-node)) ; TODO return list and use APPEND method combination?
-  (if (intern? node)
-      (list* "two-package-markers" (a:ensure-list (call-next-method)))
-      (call-next-method)))
-
-#+later (defun name-of-package? (string package)
+(defun name-of-packagep (string package)
   (or (string= string (package-name package))
       (member string (package-nicknames package) :test #'string=)))
 
-;;; Errors
+(defmethod style-class ((client ansi-text-client)
+                        (node   cst:interned-symbol-node))
+  (cond ((cst:internp node)
+         'two-package-markers)
+        (t
+         (call-next-method))))
 
-(defmethod enter-errors ((client ansi-text-client) (errors sequence))
+
+;;; Errors
+;;;
+;;; `error-markup-mixin' applies the `error' style to input characters
+;;; at which syntax errors have been recorded.
+;;;
+;;; `error-message-mixin' additionally inserts the corresponding error
+;;; message after the invalid characters.
+
+(defclass error-markup-mixin ()
+  ())
+
+(defmethod enter-errors ((client error-markup-mixin) (errors sequence))
   (let* ((style     (style-for-class 'error (theme client)))
          (new-style (apply #'change-style (style client) style)))
     (push-style! new-style client)))
 
-(defmethod leave-errors ((client ansi-text-client) (errors sequence))
+(defmethod leave-errors ((client error-markup-mixin) (errors sequence))
   (pop-style! client))
 
-#+no (defmethod enter-errors ((client ansi-text-client) (errors sequence))
-       (format (stream client) "~C[4;31m" #\Escape))
+(defclass error-message-mixin (error-markup-mixin)
+  ())
 
-#+no (defmethod leave-errors ((client ansi-text-client) (errors sequence))
+(defmethod leave-errors ((client error-message-mixin) (errors sequence))
   (let ((stream (stream client)))
     (write-string "[" stream)
     (loop :for (error rest) :on errors
-          :do (write-string (message error) stream)
+          :do (write-string (cst:message error) stream)
           :when rest
           :do (write-string "/" stream))
-    (write-string "]" stream)
-    (format stream "~C[4;39m" #\Escape)))
+    (write-string "]" stream)))
 
 ;;; `nesting-highlighting-mixin'
+;;;
+;;; Highlights opening and closing delimiters of sequence-like nodes
+;;; when they contain a given "point" position.
 
 (defclass nesting-highlighting-mixin ()
   ((%point :initarg :point
@@ -249,7 +271,7 @@
 (defmethod write-character :around ((client    nesting-highlighting-mixin)
                                     (position  t)
                                     (character t)
-                                    (node      cst::sequence-node))
+                                    (node      cst:sequence-node))
   (let* ((children (cst:children node))
          (start    (cst:start node))
          (end      (cst:end node)))

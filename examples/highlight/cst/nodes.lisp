@@ -1,4 +1,4 @@
-(cl:in-package #:eclector.examples.highlight)
+(cl:in-package #:eclector.examples.highlight.cst)
 
 ;;; `node'
 ;;;
@@ -6,6 +6,7 @@
 
 (defclass node ()
   ((%source :initarg  :source
+            :type     (cons a:non-negative-integer a:non-negative-integer)
             :reader   source)))
 
 (defmethod print-object ((object node) stream)
@@ -49,18 +50,26 @@
                       node)
   ())
 
-;;; `cst'
+;;; `root-node'
 ;;;
 ;;; Root node of the concrete syntax tree.
 
-(defclass cst (children-mixin node)
+(defclass root-node (children-mixin node)
   ())
 
-;;;
+(defun make-cst (children)
+  (make-instance 'root-node :children children
+                            :source   (cons 0 100000000000000))) ; TODO
+
+;;; Node class for recorded syntax errors
 
 (defclass syntax-error (node)
   ((%message :initarg :message
              :reader  message)))
+
+(defun make-syntax-error (start end message)
+  (make-instance 'syntax-error :source  (cons start end)
+                               :message message))
 
 ;;; Skipped
 
@@ -102,15 +111,9 @@
                        inner-node)
   ())
 
-(defmethod result-node-class ((result number))
-  'number-node)
-
 (defclass character-node (object-node-mixin
                           inner-node)
   ())
-
-(defmethod result-node-class ((result character))
-  'character-node)
 
 ;;; Symbol
 
@@ -141,22 +144,22 @@
   ((%package :initarg :package
              :type    string
              :reader  package)
-   (%intern? :initarg :intern?
-             :reader  intern?))
+   (%internp :initarg :internp
+             :reader  internp))
   (:default-initargs
    :package (a:required-argument :package)
-   :intern? (a:required-argument :intern?)))
+   :internp (a:required-argument :internp)))
 
 (defmethod print-object ((object interned-symbol-node) stream)
   (print-unreadable-object (object stream :type t :identity t)
     (format stream "~A ~A ~D-~D"
             (package object) (name object) (start object) (end object))))
 
-(defclass lambda-list-keyword-symbol-node (interned-symbol-node)
+(defclass standard-symbol-node (interned-symbol-node)
   ())
 
-(defmethod result-node-class ((result symbol))
-  'symbol-node)
+(defclass lambda-list-keyword-symbol-node (standard-symbol-node)
+  ())
 
 ;;; Structure literal
 
@@ -169,9 +172,6 @@
                       inner-node)
   ())
 
-(defmethod result-node-class ((result array))
-  'array-node)
-
 ;;; Sequence
 
 (defclass sequence-node (object-node-mixin
@@ -180,22 +180,13 @@
 
 (defclass string-node (sequence-node) ())
 
-(defmethod result-node-class ((result string))
-  'string-node)
-
 (defclass vector-node (sequence-node
                        array-node)
   ())
 
-(defmethod result-node-class ((result vector))
-  'vector-node)
-
 ;;; Cons
 
 (defclass cons-node (sequence-node) ())
-
-(defmethod result-node-class ((result cons))
-  'cons-node)
 
 ;;; Pathname
 
@@ -203,5 +194,3 @@
                          inner-node)
   ())
 
-(defmethod result-node-class ((result pathname))
-  'pathname-node)

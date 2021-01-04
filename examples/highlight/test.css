@@ -33,7 +33,7 @@
     color: #991;
 }
 
-.syntax-interned-symbol {
+.syntax-interned-symbol,.syntax-standard-symbol {
     color: #423;
 }
 

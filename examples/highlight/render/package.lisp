@@ -8,7 +8,7 @@
   (:local-nicknames
    (#:a   #:alexandria)
 
-   (#:cst #:eclector.examples.highlight))
+   (#:cst #:eclector.examples.highlight.cst))
 
   ;; Render client protocol
   (:export
@@ -17,6 +17,10 @@
    #:leave-node
    #:enter-errors
    #:leave-errors)
+
+  ;; Stream-based client protocol
+  (:export
+   #:stream)
 
   ;; Entry point
   (:export
