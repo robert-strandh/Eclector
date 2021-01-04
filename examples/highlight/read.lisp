@@ -70,26 +70,6 @@
              (when package
                (list :package package :intern? intern?))))))
 
-(defmethod eclector.reader:wrap-in-quote ((client   highlight-client)
-                                          (material t))
-  (make-instance 'quote-node :object material))
-
-(defmethod eclector.reader:wrap-in-quasiquote ((client highlight-client)
-                                               (form   t))
-  (make-instance 'quasiquote-node :object form))
-
-(defmethod eclector.reader:wrap-in-unquote ((client highlight-client)
-                                            (form   t))
-  (make-instance 'unquote-node :object form))
-
-(defmethod eclector.reader:wrap-in-unquote-splicing ((client highlight-client)
-                                                     (form   t))
-  (make-instance 'unquote-node :object form))
-
-(defmethod eclector.reader:wrap-in-function ((client highlight-client)
-                                             (name   t))
-  (make-instance 'function-node :object name))
-
 (defmethod eclector.reader:check-feature-expression
     ((client highlight-client) (feature-expression symbol-node))
   t)
@@ -129,6 +109,28 @@
                (t
                 expression))))
     (evaluate expression)))
+
+;;; Creating S-expressions
+
+(defmethod eclector.reader:wrap-in-quote ((client   highlight-client)
+                                          (material t))
+  (make-instance 'quote-node :object material))
+
+(defmethod eclector.reader:wrap-in-quasiquote ((client highlight-client)
+                                               (form   t))
+  (make-instance 'quasiquote-node :object form))
+
+(defmethod eclector.reader:wrap-in-unquote ((client highlight-client)
+                                            (form   t))
+  (make-instance 'unquote-node :object form))
+
+(defmethod eclector.reader:wrap-in-unquote-splicing ((client highlight-client)
+                                                     (form   t))
+  (make-instance 'unquote-node :object form))
+
+(defmethod eclector.reader:wrap-in-function ((client highlight-client)
+                                             (name   t))
+  (make-instance 'function-node :object name))
 
 ;;; Nodes from results
 
