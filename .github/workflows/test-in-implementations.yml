@@ -73,15 +73,6 @@ jobs:
           echo "SBCL=/tmp/sbcl/bin/sbcl" >> ~/.cl-launchrc
           echo "ECL=/tmp/ecl/bin/ecl" >> ~/.cl-launchrc
 
-          ls -a ~/
-          cat ~/.cl-launchrc
-
-          /tmp/sbcl/bin/sbcl --version
-          /tmp/sbcl/bin/sbcl --eval '(print (list 1 2 3))' --quit
-
-          ./cl -l sbcl
-          ./cl -v -l sbcl '(lisp-implementation-version)'
-
       - name: install quicklisp
         run: |
           curl -o quicklisp.lisp "${QUICKLISP_DOWNLOAD_URL}"
