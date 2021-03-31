@@ -73,6 +73,8 @@ jobs:
 
           echo "SBCL=/tmp/sbcl/bin/sbcl" >> ~/.cl-launchrc
           echo "ECL=/tmp/ecl/bin/ecl" >> ~/.cl-launchrc
+          ls -a ~/
+          cat ~/.cl-launchrc
           ./cl -v
 
       - name: install quicklisp
