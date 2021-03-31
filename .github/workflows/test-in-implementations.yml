@@ -82,7 +82,7 @@ jobs:
           echo ======
 
           curl -o quicklisp.lisp "${QUICKLISP_DOWNLOAD_URL}"
-          ./cl -l "${{matrix.implementation}}" -L quicklisp.lisp '(quicklisp-quickstart:install)'
+          ./cl -v -l "${{ matrix.implementation }}" -L quicklisp.lisp '(quicklisp-quickstart:install)'
 
       # Run tests
       - name: test
