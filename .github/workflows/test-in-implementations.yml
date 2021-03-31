@@ -75,6 +75,7 @@ jobs:
           echo "ECL=/tmp/ecl/bin/ecl" >> ~/.cl-launchrc
           ls -a ~/
           cat ~/.cl-launchrc
+          ./cl -l sbcl
           ./cl -v
 
       - name: install quicklisp
