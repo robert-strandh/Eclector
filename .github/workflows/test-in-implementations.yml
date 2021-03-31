@@ -3,8 +3,7 @@ name: test-in-implementations
 on: [push]
 
 env:
-  # Should use 2.0.3 but that needs a too-new glibc
-  SBCL_DOWNLOAD_URL: https://prdownloads.sourceforge.net/sbcl/sbcl-1.5.0-x86-64-linux-binary.tar.bz2
+  SBCL_DOWNLOAD_URL: https://prdownloads.sourceforge.net/sbcl/sbcl-2.1.1-x86-64-linux-binary.tar.bz2
   ECL_DOWNLOAD_URL:
 
   CL_LAUNCH_DOWNLOAD_URL: https://common-lisp.net/project/xcvb/cl-launch/cl-launch.sh
