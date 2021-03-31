@@ -83,6 +83,8 @@ jobs:
 
           /tmp/sbcl/bin/sbcl --version
           curl -o quicklisp.lisp "${QUICKLISP_DOWNLOAD_URL}"
+          ./cl -v -l sbcl '(print (list 1 2 3))'
+          ./cl -v '(print (list 1 2 3))'
           ./cl -v -l "${{ matrix.implementation }}" -L quicklisp.lisp '(quicklisp-quickstart:install)'
 
       # Run tests
