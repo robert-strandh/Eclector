@@ -73,6 +73,10 @@ jobs:
           echo "SBCL=/tmp/sbcl/bin/sbcl" >> ~/.cl-launchrc
           echo "ECL=/tmp/ecl/bin/ecl" >> ~/.cl-launchrc
 
+          ./cl -v -l sbcl '(print (list 1 2 3))'
+          ./cl -v '(print (list 1 2 3))'
+          ./cl -v -l "${{ matrix.implementation }}" -L quicklisp.lisp '(quicklisp-quickstart:install)'
+
       - name: install quicklisp
         run: |
           echo ======
