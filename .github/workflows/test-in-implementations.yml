@@ -76,7 +76,7 @@ jobs:
           ls -a ~/
           cat ~/.cl-launchrc
           ./cl -l sbcl
-          ./cl -v
+          ./cl -v -l sbcl '(lisp-implementation-version)'
 
       - name: install quicklisp
         run: |
