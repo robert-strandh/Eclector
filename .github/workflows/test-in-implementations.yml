@@ -81,6 +81,7 @@ jobs:
           cat ~/.cl-launchrc
           echo ======
 
+          /tmp/sbcl/bin/sbcl --version
           curl -o quicklisp.lisp "${QUICKLISP_DOWNLOAD_URL}"
           ./cl -v -l "${{ matrix.implementation }}" -L quicklisp.lisp '(quicklisp-quickstart:install)'
 
