@@ -75,6 +75,11 @@ jobs:
 
       - name: install quicklisp
         run: |
+          echo ======
+          ls ~/.cl-launchrc
+          cat ~/.cl-launchrc
+          echo ======
+
           curl -o quicklisp.lisp "${QUICKLISP_DOWNLOAD_URL}"
           ./cl -l "${{ matrix.implementation }}" -L quicklisp.lisp '(quicklisp-quickstart:install)'
 
