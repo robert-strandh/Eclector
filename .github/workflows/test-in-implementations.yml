@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        implementation: [ sbcl, ecl ] # TODO ccl
+        implementation: [ sbcl ] # TODO ecl, ccl
 
     steps:
       - uses: actions/checkout@v1
