@@ -76,6 +76,7 @@ jobs:
       - name: install quicklisp
         run: |
           echo ======
+          ls /tmp/sbcl/bin/sbcl
           ls ~/.cl-launchrc
           cat ~/.cl-launchrc
           echo ======
